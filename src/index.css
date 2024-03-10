@@ -11,3 +11,53 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+.toolbar {
+  display: flex;
+  flex-wrap: wrap; /* Allow items to wrap onto the next line */
+  align-items: center;
+  background-color: #f3f3f3;
+  border-bottom: 1px solid #ccc;
+  padding: 8px; /* Adjust padding as needed */
+  gap: 5px; /* Spacing between buttons */
+}
+
+.toolbar button {
+  min-width: 30px; /* Ensure a minimum width for buttons */
+  height: 30px; /* Fixed height for buttons */
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-right: 5px;
+  padding: 0 10px; /* Adjust padding to ensure content fits */
+  font-size: 0.85rem; /* Adjust font size for better fit */
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.toolbar button:hover,
+.toolbar button.is-active {
+  background-color: #e7e7e7;
+}
+
+.editor-content {
+  border: 1px solid #ccc;
+  padding: 10px;
+  min-height: 150px; /* Adjust based on your need */
+  margin-top: 5px;
+}
+.ProseMirror table {
+  width: 50%;
+  border-collapse: collapse;
+}
+
+.ProseMirror td, .ProseMirror th {
+  padding: 5px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.ProseMirror th {
+  background-color: #f2f2f2;
+}
