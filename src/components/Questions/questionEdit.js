@@ -30,22 +30,19 @@ const QuestionEdit = (props) => {
     const [questionPoints, setQuestionPoints] = useState(1);
     const [showDetails, setShowDetails] = useState(false);
     const [formData, updateFormData] = useState({
-        // Common fields
         questionType: 'CategoryQuestion',
         name: "",
         questionText: "",
+        questionTextFormat: 'HTML',
         generalFeedback: "",
+        generalFeedbackFormat: 'HTML',
         penalty: 0.0,
         hidden: false,
         idNumber: "",
         categoryId: 1,
         labelIds: [],
-
-        // Fields for CategoryQuestion
         categoryText: "",
         infoText: "",
-
-        // Fields specific to EssayQuestion
         defaultGrade: 0.0,
         responseFormat: "",
         responseRequired: false,
@@ -57,32 +54,28 @@ const QuestionEdit = (props) => {
         maxBytes: 0,
         fileTypesList: [],
         graderInfo: "",
+        graderInfoFormat: 'HTML',
         responseTemplate: "",
-
-        // Fields for MatchingQuestion
-        //defaultGrade: 0.0,
+        responseTemplateFormat: 'HTML',
         shuffleAnswers: false,
         correctFeedback: "",
         partiallyCorrectFeedback: "",
         incorrectFeedback: "",
+        correctFeedbackFormat: 'HTML',
+        partiallyCorrectFeedbackFormat: 'HTML',
+        incorrectFeedbackFormat: 'HTML',
         showNumCorrect: false,
-        subQuestions: [{text: "", answer: ""}],
-
-        // Fields for MultiChoiceQuestion
-        //defaultGrade: 0.0,
-        single: false, //shuffleAnswers: false,
+        subQuestions: [{text: "", answer: "", subQuestionFormat: "HTML"}],
+        single: false,
         answerNumbering: "",
-        showStandardInstruction: false, //correctFeedback: "",
-        //partiallyCorrectFeedback: "",
-        //incorrectFeedback: "",
-        answerOptions: [{fraction: 0.0, text: "", feedback: ""}],
-
-        // Fields for ShortAnswerQuestion
-        //defaultGrade: 0.0,
+        showStandardInstruction: false,
+        answerOptions: [{fraction: 0.0, answerFormat: 'HTML', text: "", feedback: "", feedbackFormat: 'HTML'}],
         useCase: false,
         answerText: "",
         answerFraction: 0.0,
         answerFeedback: "",
+        answerFormat: 'HTML',
+        feedbackFormat: 'HTML'
     });
     const editor = useEditor({
         extensions: [StarterKit, Bold, Italic, Underline, TextAlign.configure({
@@ -109,7 +102,9 @@ const QuestionEdit = (props) => {
                     fileTypesList: question.fileTypesList || currentFormData.fileTypesList,
                     answerText: question.answer?.text,
                     answerFraction: question.answer?.fraction,
-                    answerFeedback: question.answer?.feedback
+                    answerFeedback: question.answer?.feedback,
+                    answerFormat: question.answer?.answerFormat,
+                    feedbackFormat: question.answer?.feedbackFormat,
                 }));
             })
             .catch(error => {
@@ -439,7 +434,9 @@ const QuestionEdit = (props) => {
         updateFormData({...formData, answerOptions: updatedAnswerOptions});
     };
     const addAnswerOption = () => {
-        const newAnswerOption = {fraction: 0.0, text: "", feedback: ""};
+        const newAnswerOption = {
+            fraction: 0.0, text: "", feedback: "", answerFormat: 'HTML', feedbackFormat: 'HTML'
+        };
         const updatedAnswerOptions = [...formData.answerOptions, newAnswerOption];
         updateFormData({...formData, answerOptions: updatedAnswerOptions});
     };
@@ -460,7 +457,7 @@ const QuestionEdit = (props) => {
         const count = parseInt(e.target.value, 10) || 0;
         setSubQuestionCount(count);
         const newSubQuestions = Array.from({length: count}, () => ({
-            text: '', answer: '',
+            text: '', answer: '', subQuestionFormat: "HTML"
         }));
         setSubQuestions(newSubQuestions);
     };
@@ -484,7 +481,9 @@ const QuestionEdit = (props) => {
                     maxBytes: formData.maxBytes,
                     fileTypesList: fileTypes,
                     graderInfo: formData.graderInfo,
+                    graderInfoFormat: formData.graderInfoFormat,
                     responseTemplate: formData.responseTemplate,
+                    responseTemplateFormat: formData.responseTemplateFormat
                 };
             case 'CategoryQuestion':
                 return {
@@ -496,8 +495,11 @@ const QuestionEdit = (props) => {
                     defaultGrade: formData.defaultGrade,
                     shuffleAnswers: formData.shuffleAnswers,
                     correctFeedback: formData.correctFeedback,
+                    correctFeedbackFormat: formData.correctFeedbackFormat,
                     partiallyCorrectFeedback: formData.partiallyCorrectFeedback,
+                    partiallyCorrectFeedbackFormat: formData.partiallyCorrectFeedbackFormat,
                     incorrectFeedback: formData.incorrectFeedback,
+                    incorrectFeedbackFormat: formData.incorrectFeedbackFormat,
                     showNumCorrect: formData.showNumCorrect,
                     subQuestions: subQuestions,
                 };
@@ -510,18 +512,31 @@ const QuestionEdit = (props) => {
                     answerNumbering: formData.answerNumbering,
                     showStandardInstruction: formData.showStandardInstruction,
                     correctFeedback: formData.correctFeedback,
+                    correctFeedbackFormat: formData.correctFeedbackFormat,
                     partiallyCorrectFeedback: formData.partiallyCorrectFeedback,
+                    partiallyCorrectFeedbackFormat: formData.partiallyCorrectFeedbackFormat,
                     incorrectFeedback: formData.incorrectFeedback,
-                    answerOptions: formData.answerOptions,
+                    incorrectFeedbackFormat: formData.incorrectFeedbackFormat,
+                    answerOptions: formData.answerOptions.map(option => ({
+                        fraction: option.fraction,
+                        answerFormat: option.answerFormat,
+                        text: option.text,
+                        feedback: option.feedback,
+                        feedbackFormat: option.feedbackFormat,
+                    })),
                 };
             case 'ShortAnswerQuestion':
                 return {
                     ...formData,
                     defaultGrade: formData.defaultGrade,
                     useCase: formData.useCase,
-                    answerText: formData.answerText,
-                    answerFraction: formData.answerFraction,
-                    answerFeedback: formData.answerFeedback,
+                    answer: {
+                        text: formData.answerText,
+                        fraction: formData.answerFraction,
+                        feedback: formData.answerFeedback,
+                        answerFormat: formData.answerFormat,
+                        feedbackFormat: formData.feedbackFormat
+                    }
                 };
             default:
                 return {...formData};
@@ -598,10 +613,30 @@ const QuestionEdit = (props) => {
             {showDetails && (<Row>
                 <Col md={6}>
                     <div className="form-group">
+                        <label htmlFor="questionTextFormat">Question Text Format</label>
+                        <select className="form-control" id="questionTextFormat" name="questionTextFormat"
+                                value={formData.questionTextFormat} onChange={handleChange}>
+                            <option value="HTML">HTML</option>
+                            <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                            <option value="PLAIN_TEXT">Plain Text</option>
+                            <option value="MARKDOWN">Markdown</option>
+                        </select>
+                    </div>
+                    <div className="form-group">
                         <label htmlFor="generalFeedback">General Feedback</label>
                         <input type="text" className="form-control" id="generalFeedback" name="generalFeedback" required
                                placeholder="Enter General Feedback" value={formData.generalFeedback}
                                onChange={handleChange}/>
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="generalFeedbackFormat">General Feedback Format</label>
+                        <select className="form-control" id="generalFeedbackFormat" name="generalFeedbackFormat"
+                                value={formData.generalFeedbackFormat} onChange={handleChange}>
+                            <option value="HTML">HTML</option>
+                            <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                            <option value="PLAIN_TEXT">Plain Text</option>
+                            <option value="MARKDOWN">Markdown</option>
+                        </select>
                     </div>
                     <div className="form-group">
                         <label htmlFor="penalty">Penalty</label>
@@ -635,10 +670,8 @@ const QuestionEdit = (props) => {
                         </select>
                     </div>
                 </Col>
-
                 <Col md={6}>
                     {questionType === 'CategoryQuestion' && (<>
-                        {/* CategoryQuestion fields */}
                         <div className="form-group">
                             <label htmlFor="categoryText">Category Text</label>
                             <input type="text" className="form-control" id="categoryText" name="categoryText"
@@ -712,12 +745,31 @@ const QuestionEdit = (props) => {
                                       onChange={handleChange}/>
                         </div>
                         <div className="form-group">
+                            <label htmlFor="graderInfoFormat">Grader Information Format</label>
+                            <select className="form-control" id="graderInfoFormat" name="graderInfoFormat"
+                                    value={formData.graderInfoFormat} onChange={handleChange}>
+                                <option value="HTML">HTML</option>
+                                <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                                <option value="PLAIN_TEXT">Plain Text</option>
+                                <option value="MARKDOWN">Markdown</option>
+                            </select>
+                        </div>
+                        <div className="form-group">
                             <label htmlFor="responseTemplate">Response Template</label>
                             <textarea className="form-control" id="responseTemplate" name="responseTemplate"
                                       placeholder="Enter Response Template" value={formData.responseTemplate}
                                       onChange={handleChange}/>
                         </div>
-                        {/* Add an input field for specifying the number of file types */}
+                        <div className="form-group">
+                            <label htmlFor="responseTemplateFormat">Response Template Format</label>
+                            <select className="form-control" id="responseTemplateFormat" name="responseTemplateFormat"
+                                    value={formData.responseTemplateFormat} onChange={handleChange}>
+                                <option value="HTML">HTML</option>
+                                <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                                <option value="PLAIN_TEXT">Plain Text</option>
+                                <option value="MARKDOWN">Markdown</option>
+                            </select>
+                        </div>
                         <div className="form-group">
                             <label htmlFor="fileTypeCount">Number of File Types</label>
                             <input
@@ -729,7 +781,6 @@ const QuestionEdit = (props) => {
                                 min="0"
                             />
                         </div>
-                        {/* Dynamically generate input fields for each file type */}
                         {Array.from({length: fileTypeCount}, (_, index) => (<div className="form-group" key={index}>
                             <label htmlFor={`fileType-${index}`}>File Type {index + 1}</label>
                             <input
@@ -761,10 +812,31 @@ const QuestionEdit = (props) => {
                                    onChange={handleChange}/>
                         </div>
                         <div className="form-group">
+                            <label htmlFor="correctFeedbackFormat">Correct Feedback Format</label>
+                            <select className="form-control" id="correctFeedbackFormat" name="correctFeedbackFormat"
+                                    value={formData.correctFeedbackFormat} onChange={handleChange}>
+                                <option value="HTML">HTML</option>
+                                <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                                <option value="PLAIN_TEXT">Plain Text</option>
+                                <option value="MARKDOWN">Markdown</option>
+                            </select>
+                        </div>
+                        <div className="form-group">
                             <label htmlFor="partiallyCorrectFeedback">Partially Correct Feedback</label>
                             <input type="text" className="form-control" id="partiallyCorrectFeedback"
                                    name="partiallyCorrectFeedback" placeholder="Enter Partially Correct Feedback"
                                    value={formData.partiallyCorrectFeedback} onChange={handleChange}/>
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="partiallyCorrectFeedbackFormat">Partially Correct Feedback Format</label>
+                            <select className="form-control" id="partiallyCorrectFeedbackFormat"
+                                    name="partiallyCorrectFeedbackFormat"
+                                    value={formData.partiallyCorrectFeedbackFormat} onChange={handleChange}>
+                                <option value="HTML">HTML</option>
+                                <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                                <option value="PLAIN_TEXT">Plain Text</option>
+                                <option value="MARKDOWN">Markdown</option>
+                            </select>
                         </div>
                         <div className="form-group">
                             <label htmlFor="incorrectFeedback">Incorrect Feedback</label>
@@ -773,12 +845,20 @@ const QuestionEdit = (props) => {
                                    value={formData.incorrectFeedback} onChange={handleChange}/>
                         </div>
                         <div className="form-group">
+                            <label htmlFor="incorrectFeedbackFormat">Incorrect Feedback Format</label>
+                            <select className="form-control" id="incorrectFeedbackFormat" name="incorrectFeedbackFormat"
+                                    value={formData.incorrectFeedbackFormat} onChange={handleChange}>
+                                <option value="HTML">HTML</option>
+                                <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                                <option value="PLAIN_TEXT">Plain Text</option>
+                                <option value="MARKDOWN">Markdown</option>
+                            </select>
+                        </div>
+                        <div className="form-group">
                             <label htmlFor="showNumCorrect">Show Number Correct</label>
                             <input type="checkbox" id="showNumCorrect" name="showNumCorrect"
                                    checked={formData.showNumCorrect} onChange={handleChange}/>
                         </div>
-
-                        {/* Input for specifying the number of sub questions */}
                         <div className="form-group">
                             <label htmlFor="subQuestionCount">Number of Sub Questions</label>
                             <input
@@ -790,8 +870,6 @@ const QuestionEdit = (props) => {
                                 min="0"
                             />
                         </div>
-
-                        {/* Dynamically generate input fields for each sub question */}
                         {subQuestions.map((subQuestion, index) => (<div key={index}>
                             <div className="form-group">
                                 <label htmlFor={`subQuestionText-${index}`}>Sub
@@ -817,10 +895,23 @@ const QuestionEdit = (props) => {
                                     placeholder="Enter Sub Question Answer"
                                 />
                             </div>
+                            <div className="form-group">
+                                <label htmlFor={`subQuestionFormat-${index}`}>Sub Question {index + 1} Format</label>
+                                <select
+                                    className="form-control"
+                                    id={`subQuestionFormat-${index}`}
+                                    value={subQuestion.subQuestionFormat}
+                                    onChange={(e) => handleSubQuestionDetailChange(index, 'subQuestionFormat', e.target.value)}
+                                >
+                                    <option value="HTML">HTML</option>
+                                    <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                                    <option value="PLAIN_TEXT">Plain Text</option>
+                                    <option value="MARKDOWN">Markdown</option>
+                                </select>
+                            </div>
                         </div>))}
                     </>)}
                     {questionType === 'MultiChoiceQuestion' && (<>
-                        {/* Fields for MultiChoiceQuestion */}
                         <div className="form-group">
                             <label htmlFor="defaultGrade">Default Grade</label>
                             <input type="number" className="form-control" id="defaultGrade" name="defaultGrade"
@@ -855,10 +946,31 @@ const QuestionEdit = (props) => {
                                    onChange={handleChange}/>
                         </div>
                         <div className="form-group">
+                            <label htmlFor="correctFeedbackFormat">Correct Feedback Format</label>
+                            <select className="form-control" id="correctFeedbackFormat" name="correctFeedbackFormat"
+                                    value={formData.correctFeedbackFormat} onChange={handleChange}>
+                                <option value="HTML">HTML</option>
+                                <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                                <option value="PLAIN_TEXT">Plain Text</option>
+                                <option value="MARKDOWN">Markdown</option>
+                            </select>
+                        </div>
+                        <div className="form-group">
                             <label htmlFor="partiallyCorrectFeedback">Partially Correct Feedback</label>
                             <input type="text" className="form-control" id="partiallyCorrectFeedback"
                                    name="partiallyCorrectFeedback" placeholder="Enter Partially Correct Feedback"
                                    value={formData.partiallyCorrectFeedback} onChange={handleChange}/>
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="partiallyCorrectFeedbackFormat">Partially Correct Feedback Format</label>
+                            <select className="form-control" id="partiallyCorrectFeedbackFormat"
+                                    name="partiallyCorrectFeedbackFormat"
+                                    value={formData.partiallyCorrectFeedbackFormat} onChange={handleChange}>
+                                <option value="HTML">HTML</option>
+                                <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                                <option value="PLAIN_TEXT">Plain Text</option>
+                                <option value="MARKDOWN">Markdown</option>
+                            </select>
                         </div>
                         <div className="form-group">
                             <label htmlFor="incorrectFeedback">Incorrect Feedback</label>
@@ -866,14 +978,33 @@ const QuestionEdit = (props) => {
                                    name="incorrectFeedback" placeholder="Enter Incorrect Feedback"
                                    value={formData.incorrectFeedback} onChange={handleChange}/>
                         </div>
-
-                        {/* Fields for Answer Options */}
+                        <div className="form-group">
+                            <label htmlFor="incorrectFeedbackFormat">Incorrect Feedback Format</label>
+                            <select className="form-control" id="incorrectFeedbackFormat" name="incorrectFeedbackFormat"
+                                    value={formData.incorrectFeedbackFormat} onChange={handleChange}>
+                                <option value="HTML">HTML</option>
+                                <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                                <option value="PLAIN_TEXT">Plain Text</option>
+                                <option value="MARKDOWN">Markdown</option>
+                            </select>
+                        </div>
                         {formData.answerOptions.map((answer, index) => (<div key={index}>
                             <div className="form-group">
                                 <label htmlFor={`answerFraction-${index}`}>Answer Fraction</label>
                                 <input type="number" className="form-control" id={`answerFraction-${index}`}
                                        value={answer.fraction}
                                        onChange={(e) => handleAnswerChange(index, 'fraction', e.target.value)}/>
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor={`answerFormat-${index}`}>Answer Format</label>
+                                <select className="form-control" id={`answerFormat-${index}`}
+                                        value={answer.answerFormat}
+                                        onChange={(e) => handleAnswerChange(index, 'answerFormat', e.target.value)}>
+                                    <option value="HTML">HTML</option>
+                                    <option value="PLAIN_TEXT">Plain Text</option>
+                                    <option value="MARKDOWN">Markdown</option>
+                                    <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                                </select>
                             </div>
                             <div className="form-group">
                                 <label htmlFor={`answerText-${index}`}>Answer Text</label>
@@ -886,6 +1017,17 @@ const QuestionEdit = (props) => {
                                 <input type="text" className="form-control" id={`answerFeedback-${index}`}
                                        value={answer.feedback}
                                        onChange={(e) => handleAnswerChange(index, 'feedback', e.target.value)}/>
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor={`feedbackFormat-${index}`}>Feedback Format</label>
+                                <select className="form-control" id={`feedbackFormat-${index}`}
+                                        value={answer.feedbackFormat}
+                                        onChange={(e) => handleAnswerChange(index, 'feedbackFormat', e.target.value)}>
+                                    <option value="HTML">HTML</option>
+                                    <option value="PLAIN_TEXT">Plain Text</option>
+                                    <option value="MARKDOWN">Markdown</option>
+                                    <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                                </select>
                             </div>
                             <button type="button" onClick={() => removeAnswerOption(index)}>Remove Answer
                             </button>
@@ -921,6 +1063,26 @@ const QuestionEdit = (props) => {
                             <input type="text" className="form-control" id="answerFeedback"
                                    name="answerFeedback" placeholder="Enter Answer Feedback"
                                    value={formData.answerFeedback} onChange={handleChange}/>
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="answerFormat">Answer Format</label>
+                            <select className="form-control" id="answerFormat" name="answerFormat"
+                                    value={formData.answerFormat} onChange={handleChange}>
+                                <option value="HTML">HTML</option>
+                                <option value="PLAIN_TEXT">Plain Text</option>
+                                <option value="MARKDOWN">Markdown</option>
+                                <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="feedbackFormat">Feedback Format</label>
+                            <select className="form-control" id="feedbackFormat" name="feedbackFormat"
+                                    value={formData.feedbackFormat} onChange={handleChange}>
+                                <option value="HTML">HTML</option>
+                                <option value="PLAIN_TEXT">Plain Text</option>
+                                <option value="MARKDOWN">Markdown</option>
+                                <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                            </select>
                         </div>
                     </>)}
                 </Col>

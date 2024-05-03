@@ -81,6 +81,10 @@ const QuestionsAdministrationService = {
             }
         });
     },
+    exportData: () => {
+        // Assuming axios instance is configured to hit your backend
+        return axios.get("/questions/export/xml", { responseType: 'blob' });
+    }
 }
 
 export default QuestionsAdministrationService;

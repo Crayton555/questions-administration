@@ -11,9 +11,11 @@ class Questions extends React.Component {
             page: 0, size: 10, searchTerm: ""
         }
     }
+
     componentDidMount() {
         this.loadQuestions();
     }
+
     loadQuestions = () => {
         QuestionsAdministrationService.fetchQuestions()
             .then((data) => {
@@ -45,6 +47,28 @@ class Questions extends React.Component {
             onEditLabel={this.props.onEditLabel}
         />));
     };
+    handleExport = () => {
+        QuestionsAdministrationService.exportData()
+            .then(response => {
+                // Create a URL for the blob
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                // Create a temporary anchor to trigger download
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'questions-export.xml'); // Save file as 'questions-export.xml'
+                document.body.appendChild(link);
+                link.click();
+
+                // Clean up
+                link.parentNode.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                console.error("Error exporting data:", error);
+                alert("Failed to export data.");
+            });
+    }
+
     render() {
         const offset = this.state.size * this.state.page;
         const nextPageOffset = offset + this.state.size;
@@ -103,6 +127,11 @@ class Questions extends React.Component {
                     >
                         Upload XML File
                     </button>
+                </div>
+            </div>
+            <div className="row mb-4">
+                <div className="col">
+                    <button className="btn btn-success" onClick={this.handleExport}>Export Questions</button>
                 </div>
             </div>
             <ReactPaginate
