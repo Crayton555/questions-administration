@@ -31,8 +31,10 @@ class App extends Component {
             <main>
                 <div className="container">
                     <Route path={"/categories/add"} exact
-                           render={() => <CategoryAdd onAddCategory={this.addCategory}/>}/>
+                           render={() => <CategoryAdd categories={this.state.categories}
+                                                      onAddCategory={this.addCategory}/>}/>
                     <Route path={"/categories/edit/:id"} exact render={() => <CategoryEdit
+                        categories={this.state.categories}
                         onEditCategory={this.editCategory}
                         category={this.state.selectedCategory}/>}/>
                     <Route path={"/categories"} exact render={() => <Categories categories={this.state.categories}
@@ -136,12 +138,6 @@ class App extends Component {
                 this.loadCategories();
             });
     }
-    addCategory = (name, questionIds) => {
-        QuestionsAdministrationService.addCategory(name, questionIds)
-            .then(() => {
-                this.loadCategories();
-            });
-    }
     getCategory = (id) => {
         QuestionsAdministrationService.getCategory(id)
             .then((data) => {
@@ -150,14 +146,25 @@ class App extends Component {
                 })
             })
     }
-    editCategory = (id, name, questionIds) => {
-        QuestionsAdministrationService.editCategory(id, name, questionIds)
+    addCategory = (category) => {
+        QuestionsAdministrationService.addCategory(category)
+            .then(() => {
+                this.loadCategories();
+            })
+            .catch(error => {
+                console.error("Error adding category:", error);
+            });
+    }
+    editCategory = (id, category) => {
+        QuestionsAdministrationService.editCategory(id, category)
             .then(() => {
                 this.loadCategories();
                 this.loadQuestions();
+            })
+            .catch(error => {
+                console.error("Error updating category:", error);
             });
     }
-
     loadLabels = () => {
         QuestionsAdministrationService.fetchLabels()
             .then((data) => {

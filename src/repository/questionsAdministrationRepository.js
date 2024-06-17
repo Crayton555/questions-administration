@@ -29,16 +29,24 @@ const QuestionsAdministrationService = {
     getCategory: (id) => {
         return axios.get(`/categories/${id}`);
     },
-    addCategory: (name, questionIds) => {
+    addCategory: (category) => {
         return axios.post("/categories/add", {
-            "name": name,
-            "questionIds": questionIds
+            "name": category.name,
+            "info": category.info,
+            "infoTextFormat": category.infoTextFormat,
+            "idNumber": category.idNumber,
+            "parentId": category.parentId,
+            "questionIds": category.questionIds
         });
     },
-    editCategory: (id, name, questionIds) => {
+    editCategory: (id, category) => {
         return axios.put(`/categories/edit/${id}`, {
-            "name": name,
-            "questionIds": questionIds
+            "name": category.name,
+            "info": category.info,
+            "infoTextFormat": category.infoTextFormat,
+            "idNumber": category.idNumber,
+            "parentId": category.parentId,
+            "questionIds": category.questionIds
         });
     },
     deleteCategory: (id) => {
@@ -74,7 +82,7 @@ const QuestionsAdministrationService = {
     },
     uploadQuestionFile: (file) => {
         let formData = new FormData();
-        formData.append('file', file); // Append the file to the FormData instance
+        formData.append('file', file);
         return axios.post("/questions/upload-xml", formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
@@ -82,7 +90,6 @@ const QuestionsAdministrationService = {
         });
     },
     exportData: () => {
-        // Assuming axios instance is configured to hit your backend
         return axios.get("/questions/export/xml", { responseType: 'blob' });
     }
 }

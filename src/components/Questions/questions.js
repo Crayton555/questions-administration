@@ -35,7 +35,15 @@ class Questions extends React.Component {
     }
     getQuestionsPage = (offset, nextPageOffset) => {
         const filteredQuestions = this.props.questions
-            .filter(question => question.name.toLowerCase().includes(this.state.searchTerm.toLowerCase()))
+            .filter(question => {
+                const searchTerm = this.state.searchTerm.toLowerCase();
+                return (
+                    question.name.toLowerCase().includes(searchTerm) ||
+                    question.questionText.toLowerCase().includes(searchTerm) ||
+                    question.category.name.toLowerCase().includes(searchTerm) ||
+                    question.labels.some(label => label.name.toLowerCase().includes(searchTerm))
+                );
+            })
             .filter((question, index) => index >= offset && index < nextPageOffset);
 
         return filteredQuestions.map((term) => (<QuestionTerm
@@ -50,16 +58,12 @@ class Questions extends React.Component {
     handleExport = () => {
         QuestionsAdministrationService.exportData()
             .then(response => {
-                // Create a URL for the blob
                 const url = window.URL.createObjectURL(new Blob([response.data]));
-                // Create a temporary anchor to trigger download
                 const link = document.createElement('a');
                 link.href = url;
-                link.setAttribute('download', 'questions-export.xml'); // Save file as 'questions-export.xml'
+                link.setAttribute('download', 'questions-export.xml');
                 document.body.appendChild(link);
                 link.click();
-
-                // Clean up
                 link.parentNode.removeChild(link);
                 window.URL.revokeObjectURL(url);
             })
@@ -81,7 +85,7 @@ class Questions extends React.Component {
                 <div className="col">
                     <input
                         type="text"
-                        placeholder="Search by name..."
+                        placeholder="Search by question name, text, category, or labels..."
                         value={this.state.searchTerm}
                         onChange={(e) => this.setState({searchTerm: e.target.value})}
                         className="form-control"

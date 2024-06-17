@@ -22,15 +22,13 @@ import {Button, Col, Form, Modal, Row} from "react-bootstrap";
 const QuestionEdit = (props) => {
     const history = useHistory();
     const {id} = useParams();
-    const [questionType, setQuestionType] = useState('CategoryQuestion');
-    const [fileTypeCount, setFileTypeCount] = useState(0);
-    const [fileTypes, setFileTypes] = useState([]);
-    const [subQuestionCount, setSubQuestionCount] = useState(0);
-    const [subQuestions, setSubQuestions] = useState([]);
+    const [questionType, setQuestionType] = useState('ClozeQuestion');
+    const [fileTypes, setFileTypes] = useState([{type: ""}]);
+    const [subQuestions, setSubQuestions] = useState([{text: "", answer: "", subQuestionFormat: "HTML"}]);
     const [questionPoints, setQuestionPoints] = useState(1);
     const [showDetails, setShowDetails] = useState(false);
     const [formData, updateFormData] = useState({
-        questionType: 'CategoryQuestion',
+        questionType: 'ClozeQuestion',
         name: "",
         questionText: "",
         questionTextFormat: 'HTML',
@@ -41,8 +39,6 @@ const QuestionEdit = (props) => {
         idNumber: "",
         categoryId: 1,
         labelIds: [],
-        categoryText: "",
-        infoText: "",
         defaultGrade: 0.0,
         responseFormat: "",
         responseRequired: false,
@@ -88,18 +84,16 @@ const QuestionEdit = (props) => {
         QuestionsAdministrationService.getQuestion(id)
             .then(response => {
                 const question = response.data;
-                console.log("Fetched question data:", question);
                 setQuestionType(question.questionType);
                 setSubQuestions(question.subQuestions || []);
-                setSubQuestionCount(question.subQuestions?.length || 0);
-                setFileTypes(question.fileTypesList || []);
-                setFileTypeCount(question.fileTypesList?.length || 0);
+                const formattedFileTypes = question.fileTypesList ? question.fileTypesList.map(type => ({type})) : [{type: ""}];
+                setFileTypes(formattedFileTypes);
                 updateFormData(currentFormData => ({
                     ...currentFormData, ...question,
                     categoryId: question.category?.id,
                     labelIds: question.labels?.map(label => label.id) || [],
                     subQuestions: question.subQuestions || currentFormData.subQuestions,
-                    fileTypesList: question.fileTypesList || currentFormData.fileTypesList,
+                    fileTypesList: formattedFileTypes,
                     answerText: question.answer?.text,
                     answerFraction: question.answer?.fraction,
                     answerFeedback: question.answer?.feedback,
@@ -190,6 +184,7 @@ const QuestionEdit = (props) => {
             <button type="button" onClick={() => setShowMCModal(true)}>Add Multiple Choice</button>
             <button type="button" onClick={() => setShowSAModal(true)}>Add Short Answer</button>
             <button type="button" onClick={() => setShowNUMModal(true)}>Add Numerical Question</button>
+            <button type="button" onClick={() => setShowMultiResponseModal(true)}>Add MultiResponse Question</button>
         </div>);
     };
     const [showNUMModal, setShowNUMModal] = useState(false);
@@ -415,14 +410,21 @@ const QuestionEdit = (props) => {
             <Button variant="primary" onClick={submitMCModal}>Save Changes</Button>
         </Modal.Footer>
     </Modal>);
-    const handleSubQuestionChange = (index, field, value) => {
-        const updatedSubQuestions = formData.subQuestions.map((subQuestion, subIndex) => {
-            if (index === subIndex) {
-                return {...subQuestion, [field]: value};
+    const addSubQuestion = () => {
+        const newSubQuestion = {text: "", answer: "", subQuestionFormat: "HTML"};
+        setSubQuestions([...subQuestions, newSubQuestion]);
+    };
+    const removeSubQuestion = (index) => {
+        setSubQuestions(subQuestions.filter((_, subIndex) => subIndex !== index));
+    };
+    const handleSubQuestionDetailChange = (index, field, value) => {
+        const updatedSubQuestions = subQuestions.map((sq, i) => {
+            if (i === index) {
+                return {...sq, [field]: value};
             }
-            return subQuestion;
+            return sq;
         });
-        updateFormData({...formData, subQuestions: updatedSubQuestions});
+        setSubQuestions(updatedSubQuestions);
     };
     const handleAnswerChange = (index, field, value) => {
         const updatedAnswerOptions = formData.answerOptions.map((answer, answerIndex) => {
@@ -444,26 +446,21 @@ const QuestionEdit = (props) => {
         const updatedAnswerOptions = formData.answerOptions.filter((_, answerIndex) => index !== answerIndex);
         updateFormData({...formData, answerOptions: updatedAnswerOptions});
     };
-    const handleFileTypeCountChange = (e) => {
-        const count = parseInt(e.target.value, 10);
-        setFileTypeCount(count);
-        setFileTypes(Array(count).fill(''));
+    const addFileType = () => {
+        const newFileType = {type: ""};
+        setFileTypes([...fileTypes, newFileType]);
+    };
+    const removeFileType = (index) => {
+        setFileTypes(fileTypes.filter((_, i) => i !== index));
     };
     const handleFileTypeChange = (index, value) => {
-        const updatedFileTypes = fileTypes.map((fileType, i) => i === index ? value : fileType);
+        const updatedFileTypes = fileTypes.map((fileType, i) => {
+            if (i === index) {
+                return {...fileType, type: value};
+            }
+            return fileType;
+        });
         setFileTypes(updatedFileTypes);
-    };
-    const handleSubQuestionCountChange = (e) => {
-        const count = parseInt(e.target.value, 10) || 0;
-        setSubQuestionCount(count);
-        const newSubQuestions = Array.from({length: count}, () => ({
-            text: '', answer: '', subQuestionFormat: "HTML"
-        }));
-        setSubQuestions(newSubQuestions);
-    };
-    const handleSubQuestionDetailChange = (index, field, value) => {
-        const updatedSubQuestions = subQuestions.map((sq, i) => i === index ? {...sq, [field]: value} : sq);
-        setSubQuestions(updatedSubQuestions);
     };
     const constructQuestionData = () => {
         switch (questionType) {
@@ -484,10 +481,6 @@ const QuestionEdit = (props) => {
                     graderInfoFormat: formData.graderInfoFormat,
                     responseTemplate: formData.responseTemplate,
                     responseTemplateFormat: formData.responseTemplateFormat
-                };
-            case 'CategoryQuestion':
-                return {
-                    ...formData, categoryText: formData.categoryText, infoText: formData.infoText,
                 };
             case 'MatchingQuestion':
                 return {
@@ -517,6 +510,7 @@ const QuestionEdit = (props) => {
                     partiallyCorrectFeedbackFormat: formData.partiallyCorrectFeedbackFormat,
                     incorrectFeedback: formData.incorrectFeedback,
                     incorrectFeedbackFormat: formData.incorrectFeedbackFormat,
+                    showNumCorrect: formData.showNumCorrect,
                     answerOptions: formData.answerOptions.map(option => ({
                         fraction: option.fraction,
                         answerFormat: option.answerFormat,
@@ -527,10 +521,7 @@ const QuestionEdit = (props) => {
                 };
             case 'ShortAnswerQuestion':
                 return {
-                    ...formData,
-                    defaultGrade: formData.defaultGrade,
-                    useCase: formData.useCase,
-                    answer: {
+                    ...formData, defaultGrade: formData.defaultGrade, useCase: formData.useCase, answer: {
                         text: formData.answerText,
                         fraction: formData.answerFraction,
                         feedback: formData.answerFeedback,
@@ -542,15 +533,48 @@ const QuestionEdit = (props) => {
                 return {...formData};
         }
     };
+    const validateFields = () => {
+        let isValid = true;
+        if (formData.responseFieldLines % 1 !== 0) {
+            alert('Response Field Lines must be an integer.');
+            isValid = false;
+        }
+        if (formData.minWordLimit % 1 !== 0) {
+            alert('Minimum Word Limit must be an integer.');
+            isValid = false;
+        }
+        if (formData.maxWordLimit % 1 !== 0) {
+            alert('Maximum Word Limit must be an integer.');
+            isValid = false;
+        }
+        if (formData.attachments % 1 !== 0) {
+            alert('Number of Attachments must be an integer.');
+            isValid = false;
+        }
+        if (formData.attachmentsRequired % 1 !== 0) {
+            alert('Number of Attachments Required must be an integer.');
+            isValid = false;
+        }
+        if (formData.maxBytes % 1 !== 0) {
+            alert('Maximum Bytes must be an integer.');
+            isValid = false;
+        }
+        return isValid;
+    };
     const onFormSubmit = (e) => {
         e.preventDefault();
+
+        if (!validateFields()) {
+            return;
+        }
+
         formData.questionText = editor.getHTML();
+        const fileTypesAsStrings = fileTypes.map(fileType => fileType.type);
         const questionData = constructQuestionData();
+        questionData.fileTypesList = fileTypesAsStrings;
         const questionWrapper = {
             questionType: questionType, questionData: questionData
         };
-
-        console.log("Submitting the following question data:", questionWrapper);
         props.onEditQuestion(id, questionWrapper);
         history.push("/questions");
     };
@@ -567,10 +591,254 @@ const QuestionEdit = (props) => {
         });
     };
 
+    const renderFileTypes = () => (<div>
+        {fileTypes.map((fileType, index) => (<div key={index}>
+            <Row>
+                <Col md={10}>
+                    <div className="form-group">
+                        <label htmlFor={`fileType-${index}`}>File Type {index + 1}</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            id={`fileType-${index}`}
+                            value={fileType.type}
+                            onChange={(e) => handleFileTypeChange(index, e.target.value)}
+                            placeholder="Enter file type (e.g., .pdf, .docx)"
+                        />
+                    </div>
+                </Col>
+                <Col md={2} className="d-flex align-items-end">
+                    <button type="button" className="btn btn-danger"
+                            onClick={() => removeFileType(index)}>Remove
+                    </button>
+                </Col>
+            </Row>
+        </div>))}
+        <button type="button" className="btn btn-primary mt-2 mb-2" onClick={addFileType}>Add File Type</button>
+    </div>);
+    const renderSubQuestions = () => {
+        return (<>
+            {subQuestions.map((subQuestion, index) => (<div key={index}>
+                <Row>
+                    <Col md={3}>
+                        <div className="form-group">
+                            <label htmlFor={`subQuestionText-${index}`}>Sub Question {index + 1} Text</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                id={`subQuestionText-${index}`}
+                                value={subQuestion.text}
+                                onChange={(e) => handleSubQuestionDetailChange(index, 'text', e.target.value)}
+                                placeholder="Enter Sub Question Text"
+                            />
+                        </div>
+                    </Col>
+                    <Col md={3}>
+                        <div className="form-group">
+                            <label htmlFor={`subQuestionAnswer-${index}`}>Answer</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                id={`subQuestionAnswer-${index}`}
+                                value={subQuestion.answer}
+                                onChange={(e) => handleSubQuestionDetailChange(index, 'answer', e.target.value)}
+                                placeholder="Enter Sub Question Answer"
+                            />
+                        </div>
+                    </Col>
+                    <Col md={3}>
+                        <div className="form-group">
+                            <label htmlFor={`subQuestionFormat-${index}`}>Format</label>
+                            <select
+                                className="form-control"
+                                id={`subQuestionFormat-${index}`}
+                                value={subQuestion.subQuestionFormat}
+                                onChange={(e) => handleSubQuestionDetailChange(index, 'subQuestionFormat', e.target.value)}
+                            >
+                                <option value="HTML">HTML</option>
+                                <option value="PLAIN_TEXT">Plain Text</option>
+                                <option value="MARKDOWN">Markdown</option>
+                                <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                            </select>
+                        </div>
+                    </Col>
+                    <Col md={3} className="d-flex align-items-end">
+                        <button type="button" className="btn btn-danger"
+                                onClick={() => removeSubQuestion(index)}>
+                            Remove Sub Question {index + 1}
+                        </button>
+                    </Col>
+                </Row>
+            </div>))}
+            <Row>
+                <Col md={12}>
+                    <button type="button" onClick={addSubQuestion} className="btn btn-primary mt-2 mb-2">
+                        Add Sub Question
+                    </button>
+                </Col>
+            </Row>
+        </>);
+    };
+    const renderAnswerOptions = () => {
+        return (<>
+            {formData.answerOptions.map((answer, index) => (<Row key={index} className="mb-3">
+                <Col md={3}>
+                    <div className="form-group">
+                        <label htmlFor={`answerFraction-${index}`}>Answer Fraction</label>
+                        <input
+                            type="number"
+                            className="form-control"
+                            id={`answerFraction-${index}`}
+                            value={answer.fraction}
+                            step="any"
+                            onChange={(e) => handleAnswerChange(index, 'fraction', e.target.value)}
+                        />
+                    </div>
+                </Col>
+                <Col md={2}>
+                    <div className="form-group">
+                        <label htmlFor={`answerFormat-${index}`}>Format</label>
+                        <select
+                            className="form-control"
+                            id={`answerFormat-${index}`}
+                            value={answer.answerFormat}
+                            onChange={(e) => handleAnswerChange(index, 'answerFormat', e.target.value)}
+                        >
+                            <option value="HTML">HTML</option>
+                            <option value="PLAIN_TEXT">Plain Text</option>
+                            <option value="MARKDOWN">Markdown</option>
+                            <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
+                        </select>
+                    </div>
+                </Col>
+                <Col md={3}>
+                    <div className="form-group">
+                        <label htmlFor={`answerText-${index}`}>Answer Text</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            id={`answerText-${index}`}
+                            value={answer.text}
+                            onChange={(e) => handleAnswerChange(index, 'text', e.target.value)}
+                        />
+                    </div>
+                </Col>
+                <Col md={3}>
+                    <div className="form-group">
+                        <label htmlFor={`answerFeedback-${index}`}>Feedback</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            id={`answerFeedback-${index}`}
+                            value={answer.feedback}
+                            onChange={(e) => handleAnswerChange(index, 'feedback', e.target.value)}
+                        />
+                    </div>
+                </Col>
+                <Col md={1} className="d-flex align-items-end">
+                    <button type="button" className="btn btn-danger" onClick={() => removeAnswerOption(index)}>
+                        Remove
+                    </button>
+                </Col>
+            </Row>))}
+            <Row>
+                <Col md={12}>
+                    <button type="button" className="btn btn-primary mt-2 mb-2" onClick={addAnswerOption}>
+                        Add Answer Option
+                    </button>
+                </Col>
+            </Row>
+        </>);
+    };
+
+    const [showMultiResponseModal, setShowMultiResponseModal] = useState(false);
+    const [multiResponseDetails, setMultiResponseDetails] = useState({
+        points: 1, options: [{text: '', percent: 100}],
+    });
+    const handleMultiResponseChange = (e, index, field) => {
+        const value = field === 'percent' ? parseFloat(e.target.value) : e.target.value;
+        let newOptions = [...multiResponseDetails.options];
+        newOptions[index][field] = value;
+        setMultiResponseDetails({...multiResponseDetails, options: newOptions});
+    };
+
+
+    const addMultiResponseOption = () => {
+        setMultiResponseDetails({
+            ...multiResponseDetails, options: [...multiResponseDetails.options, {text: '', percent: 0}],
+        });
+    };
+    const removeMultiResponseOption = (index) => {
+        let filteredOptions = multiResponseDetails.options.filter((_, i) => i !== index);
+        setMultiResponseDetails({...multiResponseDetails, options: filteredOptions});
+    };
+    const submitMultiResponseModal = () => {
+        let placeholder = `{${multiResponseDetails.points}:MULTIRESPONSE:`;
+        multiResponseDetails.options.forEach((option, index) => {
+            placeholder += `~%${option.percent}%${option.text}`;
+        });
+        placeholder += '}' ;
+        editor.commands.insertContent(placeholder);
+        setShowMultiResponseModal(false);
+    };
+
+    const renderMultiResponseModal = () => (
+        <Modal show={showMultiResponseModal} onHide={() => setShowMultiResponseModal(false)}>
+            <Modal.Header closeButton>
+                <Modal.Title>MultiResponse Question Details</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                <Form>
+                    <Form.Group>
+                        <Form.Label>Points</Form.Label>
+                        <Form.Control
+                            type="number"
+                            value={multiResponseDetails.points}
+                            onChange={(e) => setMultiResponseDetails({ ...multiResponseDetails, points: parseInt(e.target.value, 10) || 0 })}
+                        />
+                    </Form.Group>
+                    {multiResponseDetails.options.map((option, index) => (
+                        <div key={index} className="mb-3">
+                            <Form.Group>
+                                <Form.Label>Option {index + 1} Text</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    value={option.text}
+                                    onChange={(e) => handleMultiResponseChange(e, index, 'text')}
+                                />
+                            </Form.Group>
+                            <Form.Group>
+                                <Form.Label>Option {index + 1} Percentage</Form.Label>
+                                <Form.Control
+                                    type="number"
+                                    min="-100"
+                                    max="100"
+                                    step="0.01"
+                                    value={option.percent}
+                                    onChange={(e) => handleMultiResponseChange(e, index, 'percent')}
+                                />
+                            </Form.Group>
+                            {index > 0 && (
+                                <Button variant="danger" onClick={() => removeMultiResponseOption(index)}>
+                                    Remove Option {index + 1}
+                                </Button>
+                            )}
+                        </div>
+                    ))}
+                    <Button onClick={addMultiResponseOption} className="mt-3">Add Option</Button>
+                </Form>
+            </Modal.Body>
+            <Modal.Footer>
+                <Button variant="secondary" onClick={() => setShowMultiResponseModal(false)}>Close</Button>
+                <Button variant="primary" onClick={submitMultiResponseModal}>Save Changes</Button>
+            </Modal.Footer>
+        </Modal>
+    );
     return (<div className="container">
         {renderMCModal()}
         {renderSAModal()}
         {renderNUMModal()}
+        {renderMultiResponseModal()}
         <form onSubmit={onFormSubmit}>
             <Row className="d-flex align-items-center">
                 <Col md={10}>
@@ -624,7 +892,7 @@ const QuestionEdit = (props) => {
                     </div>
                     <div className="form-group">
                         <label htmlFor="generalFeedback">General Feedback</label>
-                        <input type="text" className="form-control" id="generalFeedback" name="generalFeedback" required
+                        <input type="text" className="form-control" id="generalFeedback" name="generalFeedback"
                                placeholder="Enter General Feedback" value={formData.generalFeedback}
                                onChange={handleChange}/>
                     </div>
@@ -640,8 +908,8 @@ const QuestionEdit = (props) => {
                     </div>
                     <div className="form-group">
                         <label htmlFor="penalty">Penalty</label>
-                        <input type="number" className="form-control" id="penalty" name="penalty" required
-                               placeholder="Enter Penalty" value={formData.penalty} onChange={handleChange}/>
+                        <input type="number" className="form-control" id="penalty" name="penalty"
+                               placeholder="Enter Penalty" value={formData.penalty} onChange={handleChange} step="any"/>
                     </div>
                     <div className="form-group">
                         <label htmlFor="hidden">Hidden</label>
@@ -650,7 +918,7 @@ const QuestionEdit = (props) => {
                     </div>
                     <div className="form-group">
                         <label htmlFor="idNumber">ID Number</label>
-                        <input type="text" className="form-control" id="idNumber" name="idNumber" required
+                        <input type="text" className="form-control" id="idNumber" name="idNumber"
                                placeholder="Enter ID Number" value={formData.idNumber} onChange={handleChange}/>
                     </div>
                     <div className="form-group">
@@ -671,25 +939,12 @@ const QuestionEdit = (props) => {
                     </div>
                 </Col>
                 <Col md={6}>
-                    {questionType === 'CategoryQuestion' && (<>
-                        <div className="form-group">
-                            <label htmlFor="categoryText">Category Text</label>
-                            <input type="text" className="form-control" id="categoryText" name="categoryText"
-                                   placeholder="Enter Category Text" value={formData.categoryText}
-                                   onChange={handleChange}/>
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="infoText">Info Text</label>
-                            <input type="text" className="form-control" id="infoText" name="infoText"
-                                   placeholder="Enter Info Text" value={formData.infoText} onChange={handleChange}/>
-                        </div>
-                    </>)}
                     {questionType === 'EssayQuestion' && (<>
                         <div className="form-group">
                             <label htmlFor="defaultGrade">Default Grade</label>
                             <input type="number" className="form-control" id="defaultGrade" name="defaultGrade"
                                    placeholder="Enter Default Grade" value={formData.defaultGrade}
-                                   onChange={handleChange}/>
+                                   onChange={handleChange} step="any"/>
                         </div>
                         <div className="form-group">
                             <label htmlFor="responseFormat">Response Format</label>
@@ -705,24 +960,24 @@ const QuestionEdit = (props) => {
                         <div className="form-group">
                             <label htmlFor="responseFieldLines">Response Field Lines</label>
                             <input type="number" className="form-control" id="responseFieldLines"
-                                   name="responseFieldLines" placeholder="Enter Response Field Lines"
+                                   name="responseFieldLines" placeholder="Enter Response Field Lines" step="1"
                                    value={formData.responseFieldLines} onChange={handleChange}/>
                         </div>
                         <div className="form-group">
                             <label htmlFor="minWordLimit">Minimum Word Limit</label>
-                            <input type="number" className="form-control" id="minWordLimit" name="minWordLimit"
+                            <input type="number" className="form-control" id="minWordLimit" name="minWordLimit" step="1"
                                    placeholder="Enter Minimum Word Limit" value={formData.minWordLimit}
                                    onChange={handleChange}/>
                         </div>
                         <div className="form-group">
                             <label htmlFor="maxWordLimit">Maximum Word Limit</label>
-                            <input type="number" className="form-control" id="maxWordLimit" name="maxWordLimit"
+                            <input type="number" className="form-control" id="maxWordLimit" name="maxWordLimit" step="1"
                                    placeholder="Enter Maximum Word Limit" value={formData.maxWordLimit}
                                    onChange={handleChange}/>
                         </div>
                         <div className="form-group">
                             <label htmlFor="attachments">Attachments</label>
-                            <input type="number" className="form-control" id="attachments" name="attachments"
+                            <input type="number" className="form-control" id="attachments" name="attachments" step="1"
                                    placeholder="Enter Number of Attachments" value={formData.attachments}
                                    onChange={handleChange}/>
                         </div>
@@ -730,11 +985,12 @@ const QuestionEdit = (props) => {
                             <label htmlFor="attachmentsRequired">Attachments Required</label>
                             <input type="number" className="form-control" id="attachmentsRequired"
                                    name="attachmentsRequired" placeholder="Enter Number of Attachments Required"
+                                   step="1"
                                    value={formData.attachmentsRequired} onChange={handleChange}/>
                         </div>
                         <div className="form-group">
                             <label htmlFor="maxBytes">Maximum Bytes</label>
-                            <input type="number" className="form-control" id="maxBytes" name="maxBytes"
+                            <input type="number" className="form-control" id="maxBytes" name="maxBytes" step="1"
                                    placeholder="Enter Maximum Bytes" value={formData.maxBytes}
                                    onChange={handleChange}/>
                         </div>
@@ -770,35 +1026,13 @@ const QuestionEdit = (props) => {
                                 <option value="MARKDOWN">Markdown</option>
                             </select>
                         </div>
-                        <div className="form-group">
-                            <label htmlFor="fileTypeCount">Number of File Types</label>
-                            <input
-                                type="number"
-                                className="form-control"
-                                id="fileTypeCount"
-                                value={fileTypeCount}
-                                onChange={handleFileTypeCountChange}
-                                min="0"
-                            />
-                        </div>
-                        {Array.from({length: fileTypeCount}, (_, index) => (<div className="form-group" key={index}>
-                            <label htmlFor={`fileType-${index}`}>File Type {index + 1}</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                id={`fileType-${index}`}
-                                value={fileTypes[index] || ''}
-                                onChange={(e) => handleFileTypeChange(index, e.target.value)}
-                                placeholder="Enter file type"
-                            />
-                        </div>))}
                     </>)}
                     {questionType === 'MatchingQuestion' && (<>
                         <div className="form-group">
                             <label htmlFor="defaultGrade">Default Grade</label>
                             <input type="number" className="form-control" id="defaultGrade" name="defaultGrade"
                                    placeholder="Enter Default Grade" value={formData.defaultGrade}
-                                   onChange={handleChange}/>
+                                   onChange={handleChange} step="any"/>
                         </div>
                         <div className="form-group">
                             <label htmlFor="shuffleAnswers">Shuffle Answers</label>
@@ -859,64 +1093,13 @@ const QuestionEdit = (props) => {
                             <input type="checkbox" id="showNumCorrect" name="showNumCorrect"
                                    checked={formData.showNumCorrect} onChange={handleChange}/>
                         </div>
-                        <div className="form-group">
-                            <label htmlFor="subQuestionCount">Number of Sub Questions</label>
-                            <input
-                                type="number"
-                                className="form-control"
-                                id="subQuestionCount"
-                                value={subQuestionCount}
-                                onChange={handleSubQuestionCountChange}
-                                min="0"
-                            />
-                        </div>
-                        {subQuestions.map((subQuestion, index) => (<div key={index}>
-                            <div className="form-group">
-                                <label htmlFor={`subQuestionText-${index}`}>Sub
-                                    Question {index + 1} Text</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    id={`subQuestionText-${index}`}
-                                    value={subQuestion.text}
-                                    onChange={(e) => handleSubQuestionDetailChange(index, 'text', e.target.value)}
-                                    placeholder="Enter Sub Question Text"
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor={`subQuestionAnswer-${index}`}>Sub
-                                    Question {index + 1} Answer</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    id={`subQuestionAnswer-${index}`}
-                                    value={subQuestion.answer}
-                                    onChange={(e) => handleSubQuestionDetailChange(index, 'answer', e.target.value)}
-                                    placeholder="Enter Sub Question Answer"
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor={`subQuestionFormat-${index}`}>Sub Question {index + 1} Format</label>
-                                <select
-                                    className="form-control"
-                                    id={`subQuestionFormat-${index}`}
-                                    value={subQuestion.subQuestionFormat}
-                                    onChange={(e) => handleSubQuestionDetailChange(index, 'subQuestionFormat', e.target.value)}
-                                >
-                                    <option value="HTML">HTML</option>
-                                    <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
-                                    <option value="PLAIN_TEXT">Plain Text</option>
-                                    <option value="MARKDOWN">Markdown</option>
-                                </select>
-                            </div>
-                        </div>))}
                     </>)}
                     {questionType === 'MultiChoiceQuestion' && (<>
                         <div className="form-group">
                             <label htmlFor="defaultGrade">Default Grade</label>
                             <input type="number" className="form-control" id="defaultGrade" name="defaultGrade"
                                    placeholder="Enter Default Grade" value={formData.defaultGrade}
-                                   onChange={handleChange}/>
+                                   onChange={handleChange} step="any"/>
                         </div>
                         <div className="form-group">
                             <label htmlFor="single">Single Choice</label>
@@ -988,58 +1171,18 @@ const QuestionEdit = (props) => {
                                 <option value="MARKDOWN">Markdown</option>
                             </select>
                         </div>
-                        {formData.answerOptions.map((answer, index) => (<div key={index}>
-                            <div className="form-group">
-                                <label htmlFor={`answerFraction-${index}`}>Answer Fraction</label>
-                                <input type="number" className="form-control" id={`answerFraction-${index}`}
-                                       value={answer.fraction}
-                                       onChange={(e) => handleAnswerChange(index, 'fraction', e.target.value)}/>
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor={`answerFormat-${index}`}>Answer Format</label>
-                                <select className="form-control" id={`answerFormat-${index}`}
-                                        value={answer.answerFormat}
-                                        onChange={(e) => handleAnswerChange(index, 'answerFormat', e.target.value)}>
-                                    <option value="HTML">HTML</option>
-                                    <option value="PLAIN_TEXT">Plain Text</option>
-                                    <option value="MARKDOWN">Markdown</option>
-                                    <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor={`answerText-${index}`}>Answer Text</label>
-                                <input type="text" className="form-control" id={`answerText-${index}`}
-                                       value={answer.text}
-                                       onChange={(e) => handleAnswerChange(index, 'text', e.target.value)}/>
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor={`answerFeedback-${index}`}>Answer Feedback</label>
-                                <input type="text" className="form-control" id={`answerFeedback-${index}`}
-                                       value={answer.feedback}
-                                       onChange={(e) => handleAnswerChange(index, 'feedback', e.target.value)}/>
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor={`feedbackFormat-${index}`}>Feedback Format</label>
-                                <select className="form-control" id={`feedbackFormat-${index}`}
-                                        value={answer.feedbackFormat}
-                                        onChange={(e) => handleAnswerChange(index, 'feedbackFormat', e.target.value)}>
-                                    <option value="HTML">HTML</option>
-                                    <option value="PLAIN_TEXT">Plain Text</option>
-                                    <option value="MARKDOWN">Markdown</option>
-                                    <option value="MOODLE_AUTO_FORMAT">Moodle Auto Format</option>
-                                </select>
-                            </div>
-                            <button type="button" onClick={() => removeAnswerOption(index)}>Remove Answer
-                            </button>
-                        </div>))}
-                        <button type="button" onClick={addAnswerOption}>Add Answer Option</button>
+                        <div className="form-group">
+                            <label htmlFor="showNumCorrect">Show Number Correct</label>
+                            <input type="checkbox" id="showNumCorrect" name="showNumCorrect"
+                                   checked={formData.showNumCorrect} onChange={handleChange}/>
+                        </div>
                     </>)}
                     {questionType === 'ShortAnswerQuestion' && (<>
                         <div className="form-group">
                             <label htmlFor="defaultGrade">Default Grade</label>
                             <input type="number" className="form-control" id="defaultGrade" name="defaultGrade"
                                    placeholder="Enter Default Grade" value={formData.defaultGrade}
-                                   onChange={handleChange}/>
+                                   onChange={handleChange} step="any"/>
                         </div>
                         <div className="form-group">
                             <label htmlFor="useCase">Use Case</label>
@@ -1055,7 +1198,7 @@ const QuestionEdit = (props) => {
                         <div className="form-group">
                             <label htmlFor="answerFraction">Answer Fraction</label>
                             <input type="number" className="form-control" id="answerFraction"
-                                   name="answerFraction" placeholder="Enter Answer Fraction"
+                                   name="answerFraction" placeholder="Enter Answer Fraction" step="any"
                                    value={formData.answerFraction} onChange={handleChange}/>
                         </div>
                         <div className="form-group">
@@ -1087,9 +1230,16 @@ const QuestionEdit = (props) => {
                     </>)}
                 </Col>
             </Row>)}
+            {showDetails && (<Row>
+                <Col>
+                    {questionType === 'EssayQuestion' && renderFileTypes()}
+                    {questionType === 'MatchingQuestion' && renderSubQuestions()}
+                    {questionType === 'MultiChoiceQuestion' && renderAnswerOptions()}
+                </Col>
+            </Row>)}
             <Row>
                 <Col>
-                    <button id="submit" type="submit" className="btn btn-primary">Submit</button>
+                    <button id="submit" type="submit" className="btn btn-primary mt-2">Submit</button>
                 </Col>
             </Row>
         </form>
