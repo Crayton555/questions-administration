@@ -19,12 +19,16 @@ class App extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            categories: [], selectedCategory: {},
-            labels: [], selectedLabel: {},
-            questions: [], selectedQuestion: {},
+            categories: [],
+            selectedCategory: {},
+            labels: [],
+            selectedLabel: {},
+            questions: [],
+            selectedQuestion: {},
             selectedFile: null
         }
     }
+
     render() {
         return (<Router>
             <Header/>
@@ -59,16 +63,15 @@ class App extends Component {
                         labels={this.state.labels}
                         question={this.state.selectedQuestion}
                         onEditQuestion={this.editQuestion}/>}/>
-                    <Route path={"/questions"} exact render={() =>
-                        <Questions questions={this.state.questions}
-                                   onDelete={this.deleteQuestion}
-                                   onEdit={this.getQuestion}
-                                   onFileSelect={this.handleFileSelect}
-                                   onFileUpload={this.handleFileUpload}
-                                   selectedFile={this.state.selectedFile}
-                                   onAddNewLabelToQuestion={this.addNewLabelToQuestion}
-                                   onEditLabel={this.editLabelQuestion}
-                        />}/>
+                    <Route path={"/questions"} exact render={() => <Questions questions={this.state.questions}
+                                                                              onDelete={this.deleteQuestion}
+                                                                              onEdit={this.getQuestion}
+                                                                              onFileSelect={this.handleFileSelect}
+                                                                              onFileUpload={this.handleFileUpload}
+                                                                              selectedFile={this.state.selectedFile}
+                                                                              onAddNewLabelToQuestion={this.addNewLabelToQuestion}
+                                                                              onEditLabel={this.editLabelQuestion}
+                    />}/>
                     <Route path={"/categories-drag-drop"} exact component={CategoryQuestionDragDrop}/>
                 </div>
             </main>
@@ -201,10 +204,10 @@ class App extends Component {
             });
     }
     handleFileSelect = (event) => {
-        this.setState({ selectedFile: event.target.files[0] });
+        this.setState({selectedFile: event.target.files[0]});
     };
     handleFileUpload = () => {
-        const { selectedFile } = this.state;
+        const {selectedFile} = this.state;
         if (!selectedFile) {
             alert("Please select a file first!");
             return;

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useHistory } from 'react-router-dom';
+import React, {useState, useEffect} from 'react';
+import {useHistory} from 'react-router-dom';
 import axios from "../../custom-axios/axios";
 
 const CategoryEdit = (props) => {
@@ -12,20 +12,34 @@ const CategoryEdit = (props) => {
         parentId: props.category.parentId || ""
     });
     const [categories, setCategories] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        setLoading(true);
-        axios.get(`/categories/exclude-subtree/${props.category.id}`)
-            .then(response => {
-                setCategories(response.data);
-                setLoading(false);
-            })
-            .catch(error => {
-                setError("Failed to fetch categories");
-                setLoading(false);
-            });
+        const fetchData = () => {
+            axios.get(`/categories/exclude-subtree/${props.category.id}`)
+                .then(response => {
+                    setCategories(response.data);
+                    setLoading(false);
+                })
+                .catch(() => {
+                    setLoading(true);
+                });
+        };
+
+        const intervalId = setInterval(() => {
+            if (loading) {
+                fetchData();
+            } else {
+                clearInterval(intervalId);
+            }
+        }, 2000);
+
+        fetchData();
+
+        return () => clearInterval(intervalId);
+    }, [props.category]);
+
+    useEffect(() => {
         setFormData({
             name: props.category.name,
             info: props.category.info || "",
@@ -35,26 +49,24 @@ const CategoryEdit = (props) => {
         });
     }, [props.category]);
 
-
     const handleChange = (e) => {
         setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
+            ...formData, [e.target.name]: e.target.value
         });
     };
 
     const onFormSubmit = (e) => {
         e.preventDefault();
         const submitData = {
-            ...formData,
-            parentId: formData.parentId || null
+            ...formData, parentId: formData.parentId || null
         };
         props.onEditCategory(props.category.id, submitData);
         history.push("/categories");
     };
 
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div>Error: {error}</div>;
+    const Loader = () => (<div className="loader">Loading...</div>);
+
+    if (loading) return <Loader />;
 
     return (
         <div className="row mt-5">
@@ -133,6 +145,6 @@ const CategoryEdit = (props) => {
             </div>
         </div>
     );
-}
+};
 
 export default CategoryEdit;

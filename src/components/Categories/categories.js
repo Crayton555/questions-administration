@@ -8,8 +8,8 @@ class Categories extends React.Component {
         super(props);
 
         this.state = {
-            page: 0, size: 5
-        }
+            page: 0, size: 5, searchTerm: ""
+        };
     }
 
     render() {
@@ -19,6 +19,17 @@ class Categories extends React.Component {
         const categories = this.getCategoriesPage(offset, nextPageOffset);
 
         return (<div className={"container mm-4 mt-5"}>
+            <div className={"row mb-4"}>
+                <div className="col">
+                    <input
+                        type="text"
+                        placeholder="Search by name..."
+                        value={this.state.searchTerm}
+                        onChange={(e) => this.setState({searchTerm: e.target.value})}
+                        className="form-control"
+                    />
+                </div>
+            </div>
             <div className={"row"}>
                 <div className={"table-responsive"}>
                     <table className={"table table-striped"}>
@@ -61,13 +72,12 @@ class Categories extends React.Component {
         })
     }
     getCategoriesPage = (offset, nextPageOffset) => {
-        return this.props.categories.map((term, index) => {
-            return (
-                <CategoryTerm key={term.id} term={term} onDelete={this.props.onDelete} onEdit={this.props.onEdit} />
-            );
-        }).filter((category, index) => {
-            return index >= offset && index < nextPageOffset;
-        })
+        const filteredCategories = this.props.categories
+            .filter(category => category.name.toLowerCase().includes(this.state.searchTerm.toLowerCase()))
+            .filter((category, index) => index >= offset && index < nextPageOffset);
+
+        return filteredCategories.map((term) => (
+            <CategoryTerm key={term.id} term={term} onDelete={this.props.onDelete} onEdit={this.props.onEdit}/>));
     }
 }
 

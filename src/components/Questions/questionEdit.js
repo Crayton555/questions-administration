@@ -813,7 +813,7 @@ const QuestionEdit = (props) => {
                                     type="number"
                                     min="-100"
                                     max="100"
-                                    step="0.01"
+                                    step="1"
                                     value={option.percent}
                                     onChange={(e) => handleMultiResponseChange(e, index, 'percent')}
                                 />

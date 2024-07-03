@@ -8,7 +8,7 @@ class Labels extends React.Component {
         super(props);
 
         this.state = {
-            page: 0, size: 5
+            page: 0, size: 5, searchTerm: ""
         }
     }
 
@@ -19,6 +19,17 @@ class Labels extends React.Component {
         const labels = this.getLabelsPage(offset, nextPageOffset);
 
         return (<div className={"container mm-4 mt-5"}>
+            <div className={"row mb-4"}>
+                <div className="col">
+                    <input
+                        type="text"
+                        placeholder="Search by name..."
+                        value={this.state.searchTerm}
+                        onChange={(e) => this.setState({searchTerm: e.target.value})}
+                        className="form-control"
+                    />
+                </div>
+            </div>
             <div className={"row"}>
                 <div className={"table-responsive"}>
                     <table className={"table table-striped"}>
@@ -60,15 +71,13 @@ class Labels extends React.Component {
             page: selected
         })
     }
-
     getLabelsPage = (offset, nextPageOffset) => {
-        return this.props.labels.map((term, index) => {
-            return (
-                <LabelTerm key={term.id} term={term} onDelete={this.props.onDelete} onEdit={this.props.onEdit} />
-            );
-        }).filter((label, index) => {
-            return index >= offset && index < nextPageOffset;
-        })
+        const filteredLabels = this.props.labels
+            .filter(label => label.name.toLowerCase().includes(this.state.searchTerm.toLowerCase()))
+            .filter((label, index) => index >= offset && index < nextPageOffset);
+
+        return filteredLabels.map((term) => (
+            <LabelTerm key={term.id} term={term} onDelete={this.props.onDelete} onEdit={this.props.onEdit}/>));
     }
 }
 
